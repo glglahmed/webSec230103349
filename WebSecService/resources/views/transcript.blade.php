@@ -1,40 +1,32 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student Transcript</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body>
-    <div class="container mt-5">
-        <h2 class="text-center">Student Transcript</h2>
+@extends('layouts.app') 
 
-        <div class="mb-3">
-            <strong>Student Name:</strong> {{ $student['name'] }} <br>
-            <strong>Student ID:</strong> {{ $student['id'] }} <br>
-            <strong>Department:</strong> {{ $student['department'] }} <br>
-            <strong>Total GPA:</strong> {{ number_format($totalGPA, 2) }} <!-- توتال GPA يظهر هنا -->
-        </div>
-
-        <table class="table table-bordered">
-            <thead class="table-dark">
-                <tr>
-                    <th>Course</th>
-                    <th>GPA</th>
-                    <th>Grade</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach ($student['courses'] as $course)
-                <tr>
-                    <td>{{ $course['name'] }}</td>
-                    <td>{{ number_format($course['gpa'], 2) }}</td>
-                    <td>{{ $course['grade'] }}</td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
-    </div>
-</body>
-</html>
+@section('content')
+<div class="container mt-5">
+    <h2 class="text-center mb-4">Student Transcript</h2>
+    
+    <table class="table table-striped table-bordered">
+        <thead class="table-dark">
+            <tr>
+                <th>Course</th>
+                <th>Grade</th>
+                <th>Credits</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($transcript as $course)
+            <tr>
+                <td>{{ $course['course'] }}</td>
+                <td>{{ $course['grade'] }}</td>
+                <td>{{ $course['credits'] }}</td>
+            </tr>
+            @endforeach
+        </tbody>
+        <tfoot class="table-warning">
+            <tr>
+                <td colspan="2" class="text-end"><strong>Total Credits:</strong></td>
+                <td><strong>{{ array_sum(array_column($transcript, 'credits')) }}</strong></td>
+            </tr>
+        </tfoot>
+    </table>
+</div>
+@endsection

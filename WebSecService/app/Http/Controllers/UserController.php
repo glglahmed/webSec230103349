@@ -1,85 +1,60 @@
 <?php
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Auth;
 
 class UserController extends Controller
 {
-    public function showRegister()
+    // عرض جميع المستخدمين (للمسؤول فقط)
+    public function index()
     {
-        return view('auth.register');
+        $users = User::all();
+        return view('admin.users.index', compact('users'));
     }
 
-    public function register(Request $request)
+    // تعديل بيانات المستخدم
+    public function edit(User $user)
+    {
+        return view('admin.users.edit', compact('user'));
+    }
+
+    // تحديث بيانات المستخدم
+    public function update(Request $request, User $user)
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:6|confirmed',
+            'email' => 'required|email|unique:users,email,' . $user->id,
+            'admin' => 'boolean',
         ]);
 
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-        ]);
+        $user->update($request->only('name', 'email', 'admin'));
 
-        Auth::login($user);
-
-        return redirect()->route('dashboard')->with('success', 'Registration successful!');
+        return redirect()->route('admin.users.index')->with('success', 'User updated successfully');
     }
 
-    public function showLogin()
-    {
-        return view('auth.login');
-    }
-
-    public function login(Request $request)
+    // تغيير كلمة المرور
+    public function changePassword(Request $request, User $user)
     {
         $request->validate([
-            'email' => 'required|email',
-            'password' => 'required',
+            'old_password' => 'required',
+            'new_password' => 'required|min:8',
         ]);
 
-        if (Auth::attempt(['email' => $request->email, 'password' => $request->password])) {
-            return redirect()->route('dashboard')->with('success', 'Login successful!');
+        if (!Hash::check($request->old_password, $user->password)) {
+            return back()->with('error', 'Old password is incorrect');
         }
 
-        return back()->withErrors(['email' => 'Invalid credentials.']);
+        $user->update(['password' => Hash::make($request->new_password)]);
+
+        return back()->with('success', 'Password changed successfully');
     }
 
-    // Show change password form
-    public function showChangePassword()
+    // حذف المستخدم
+    public function destroy(User $user)
     {
-        return view('auth.change-password');
-    }
-
-    // Handle password change
-    public function changePassword(Request $request)
-    {
-        $request->validate([
-            'current_password' => 'required',
-            'new_password' => 'required|min:6|confirmed',
-        ]);
-
-        if (!Hash::check($request->current_password, Auth::user()->password)) {
-            return back()->withErrors(['current_password' => 'Current password is incorrect.']);
-        }
-
-        Auth::user()->update([
-            'password' => Hash::make($request->new_password),
-        ]);
-
-        return redirect()->route('dashboard')->with('success', 'Password changed successfully!');
-    }
-
-    // Logout user
-    public function logout()
-    {
-        Auth::logout();
-        return redirect()->route('login')->with('success', 'Logged out successfully!');
+        $user->delete();
+        return redirect()->route('admin.users.index')->with('success', 'User deleted successfully');
     }
 }
