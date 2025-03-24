@@ -1,0 +1,3 @@
+[submodule "WebSecTest"]
+	path = WebSecTest
+	url = https://github.com/glglahmed/WebSecTest.git

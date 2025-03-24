@@ -4,7 +4,7 @@ namespace App\Http;
 
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
 use App\Http\Middleware\Authenticate;
-use App\Http\Middleware\AdminMiddleware; // تأكد أن هذا السطر موجود
+use App\Http\Middleware\AdminMiddleware; 
 
 class Kernel extends HttpKernel
 {
