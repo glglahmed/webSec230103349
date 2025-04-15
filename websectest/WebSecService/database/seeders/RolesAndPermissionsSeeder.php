@@ -14,24 +14,53 @@ class RolesAndPermissionsSeeder extends Seeder
         app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
 
         // Create Permissions
-        Permission::create(['name' => 'purchase_products']);
-        Permission::create(['name' => 'add_products']);
-        Permission::create(['name' => 'edit_products']);
-        Permission::create(['name' => 'delete_products']);
-        Permission::create(['name' => 'list_customers']);
-        Permission::create(['name' => 'show_users']);
-        Permission::create(['name' => 'edit_users']);
-        Permission::create(['name' => 'delete_users']);
-        Permission::create(['name' => 'admin_users']);
+        $permissions = [
+            'purchase_products',
+            'add_products',
+            'edit_products',
+            'delete_products',
+            'list_customers',
+            'show_users',
+            'edit_users',
+            'delete_users',
+            'admin_users',
+            'add_credit_to_customers',
+            'make_payments',
+            'create_employee',
+            'store_employee',
+            'reset_credit',
+        ];
+
+        foreach ($permissions as $permission) {
+            Permission::create(['name' => $permission, 'guard_name' => 'web']);
+        }
 
         // Create Roles and Assign Permissions
-        $adminRole = Role::create(['name' => 'Admin']);
-        $adminRole->givePermissionTo(Permission::all()); // Admin has all permissions
+        $superUserRole = Role::create(['name' => 'SuperUser', 'guard_name' => 'web']);
+        $superUserRole->givePermissionTo(Permission::all()); // SuperUser has all permissions
 
-        $customerRole = Role::create(['name' => 'Customer']);
+        $adminRole = Role::create(['name' => 'Admin', 'guard_name' => 'web']);
+        $adminRole->givePermissionTo([
+            'show_users',
+            'edit_users',
+            'delete_users',
+            'admin_users',
+            'add_credit_to_customers',
+            'make_payments',
+            'create_employee',
+            'store_employee',
+        ]);
+
+        $employeeRole = Role::create(['name' => 'Employee', 'guard_name' => 'web']);
+        $employeeRole->givePermissionTo([
+            'add_products',
+            'edit_products',
+            'delete_products',
+            'list_customers',
+            'reset_credit',
+        ]);
+
+        $customerRole = Role::create(['name' => 'Customer', 'guard_name' => 'web']);
         $customerRole->givePermissionTo('purchase_products');
-
-        $employeeRole = Role::create(['name' => 'Employee']);
-        $employeeRole->givePermissionTo(['add_products', 'edit_products', 'delete_products', 'list_customers']);
     }
 }

@@ -13,10 +13,8 @@
 
         <h1>{{ $product->id ? 'Edit Product' : 'Add Product' }}</h1>
 
-        <!-- عرض اسم المستخدم اللي بيعدّل -->
         <p>Editing as: <strong>{{ $user->name }}</strong></p>
 
-        <!-- عرض رسايل الخطأ -->
         @if ($errors->any())
             <div class="alert alert-danger">
                 <ul>
@@ -27,14 +25,12 @@
             </div>
         @endif
 
-        <!-- عرض رسالة النجاح لو موجودة -->
         @if (session('success'))
             <div class="alert alert-success">
                 {{ session('success') }}
             </div>
         @endif
 
-        <!-- فورم تعديل المنتج -->
         <form method="POST" action="{{ route('products_save') }}" enctype="multipart/form-data">
             @csrf
             <input type="hidden" name="id" value="{{ $product->id }}">

@@ -16,8 +16,8 @@ Route::post('users/save/{user}', [UsersController::class, 'save'])->name('users_
 Route::delete('users/delete/{user}', [UsersController::class, 'delete'])->name('users_delete')->middleware('auth:web');
 Route::get('users/edit_password/{user?}', [UsersController::class, 'editPassword'])->name('edit_password');
 Route::post('users/save_password/{user}', [UsersController::class, 'savePassword'])->name('save_password');
-Route::get('users/create-employee', [UsersController::class, 'createEmployee'])->name('users_create_employee')->middleware('auth:web');
-Route::post('users/store-employee', [UsersController::class, 'storeEmployee'])->name('users_store_employee')->middleware('auth:web');
+Route::get('users/create-employee', [UsersController::class, 'createEmployee'])->name('create_employee')->middleware('auth:web');
+Route::post('users/store-employee', [UsersController::class, 'storeEmployee'])->name('store_employee')->middleware('auth:web');
 
 Route::get('users/change-password/{id}', [UsersController::class, 'changePassword'])->name('users.change-password')->middleware('auth:web');
 Route::post('users/update-password/{id}', [UsersController::class, 'updatePassword'])->name('users.update-password')->middleware('auth:web');
@@ -29,15 +29,20 @@ Route::delete('/users/delete/{user}', [UsersController::class, 'delete'])->name(
 Route::post('/users/add-credit/{user}', [UsersController::class, 'addCredit'])->name('users_add_credit'); // New Route
 Route::get('/customers', [UsersController::class, 'listCustomers'])->name('customers_list');
 Route::post('/users/{user}/make-payment', [UsersController::class, 'makePayment'])->name('users_make_payment');
+Route::post('/users/reset-credit/{user}', [UsersController::class, 'resetCredit'])->name('reset_credit');
 
 Route::get('products', [ProductsController::class, 'list'])->name('products_list');
 Route::get('products/edit/{product?}', [ProductsController::class, 'edit'])->name('products_edit');
 Route::post('products/save/{product?}', [ProductsController::class, 'save'])->name('products_save');
-// Route::get('products/delete/{product}', [ProductsController::class, 'delete'])->name('products_delete');
 Route::delete('/products/delete/{product}', [ProductsController::class, 'delete'])->name('products_delete');
 Route::post('products/purchase/{product}', [ProductsController::class, 'purchase'])->name('products_purchase')->middleware('auth:web');
-// Route::get('users/customers', [UsersController::class, 'listCustomers'])->name('users_customers')->middleware('auth:web');
 
+
+// routes/web.php
+Route::get('password/reset', [App\Http\Controllers\Web\UsersController::class, 'showForgetPasswordForm'])->name('password.request');
+Route::post('password/email', [App\Http\Controllers\Web\UsersController::class, 'sendTemporaryPassword'])->name('password.email');
+Route::get('password/change', [App\Http\Controllers\Web\UsersController::class, 'showChangePasswordForm'])->name('password.change');
+Route::post('password/update', [App\Http\Controllers\Web\UsersController::class, 'changePassword'])->name('password.update');
 Route::get('/', function () {
     return view('welcome');
 });

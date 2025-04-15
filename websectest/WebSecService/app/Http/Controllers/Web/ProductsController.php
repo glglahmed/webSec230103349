@@ -157,7 +157,6 @@ class ProductsController extends Controller
 
     public function list(Request $request)
     {
-        // التحقق من الصلاحيات
         if (!auth()->user()->hasRole('Customer') && !auth()->user()->hasRole('Admin') && !auth()->user()->hasRole('Employee')) {
             abort(403, 'Unauthorized action.');
         }
@@ -183,7 +182,6 @@ class ProductsController extends Controller
 
         $products = $query->paginate(10);
 
-        // إضافة الـ credit بتاع المستخدم
         $credit = auth()->check() ? auth()->user()->credit : 0;
 
         return view('products.list', compact('products', 'credit'));
@@ -203,9 +201,9 @@ class ProductsController extends Controller
         $product = Product::findOrFail($id);
     }
 
-    $user = auth()->user(); // نعرّف $user
+    $user = auth()->user(); 
 
-    return view('products.edit', compact('product', 'user')); // نضيف $user للـ view
+    return view('products.edit', compact('product', 'user')); 
 }
     public function save(Request $request)
     {
@@ -221,7 +219,6 @@ class ProductsController extends Controller
             $product = Product::findOrFail($request->id);
         }
 
-        // Define validation rules
         $rules = [
             'name' => ['required', 'string', 'min:5'],
             'price' => ['required', 'numeric', 'min:0'],
@@ -229,7 +226,7 @@ class ProductsController extends Controller
             'photo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:2048'],
         ];
 
-        // Add code validation rules based on conditions
+      
         if ($request->id == 0) {
             $rules['code'] = ['required', 'string', 'min:5', 'unique:products,code'];
         } else {
@@ -238,7 +235,7 @@ class ProductsController extends Controller
             }
         }
 
-        // Apply validation
+        
         $this->validate($request, $rules);
 
         $product->name = $request->name;
@@ -248,7 +245,7 @@ class ProductsController extends Controller
         $product->description = $request->description;
         $product->stock = $request->stock;
 
-        // حذف الصورة القديمة لو تم رفع صورة جديدة
+       
         if ($request->hasFile('photo')) {
             if ($product->photo && file_exists(public_path('images/' . $product->photo))) {
                 unlink(public_path('images/' . $product->photo));
@@ -270,7 +267,7 @@ class ProductsController extends Controller
             abort(401);
         }
 
-        // حذف الصورة من المجلد
+  
         if ($product->photo && file_exists(public_path('images/' . $product->photo))) {
             unlink(public_path('images/' . $product->photo));
         }
@@ -282,7 +279,7 @@ class ProductsController extends Controller
 
     public function purchase(Request $request, Product $product)
     {
-        // التأكد إن اللي بيشتري هو Customer بس
+       
         if (!auth()->user()->hasRole('Customer')) {
             \Log::error('Unauthorized purchase attempt by user ID: ' . auth()->user()->id);
             abort(403, 'Only customers can purchase products.');
@@ -300,17 +297,15 @@ class ProductsController extends Controller
             return redirect()->back()->withErrors('Product out of stock.');
         }
 
-        // تقليل الـ credit
+        
         auth()->user()->credit -= $product->price;
         auth()->user()->save();
         \Log::info('Credit deducted: User ID ' . auth()->user()->id . ', New Credit ' . auth()->user()->credit);
 
-        // تقليل الـ stock
         $product->stock -= 1;
         $product->save();
         \Log::info('Stock updated: Product ID ' . $product->id . ', New Stock ' . $product->stock);
 
-        // تسجيل عملية الشراء
         try {
             Purchase::create([
                 'user_id' => auth()->user()->id,

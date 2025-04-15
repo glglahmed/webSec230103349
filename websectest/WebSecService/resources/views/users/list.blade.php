@@ -12,6 +12,12 @@
         @include('layouts.menu')
 
         <h1>Users</h1>
+        
+        @if (auth()->user()->hasRole('Admin'))
+             <div class="mb-3">
+             <a href="{{ route('create_employee') }}" class="btn btn-primary">Add Employee</a>
+             </div>
+         @endif
 
         @if (session('success'))
             <div class="alert alert-success">
@@ -86,9 +92,18 @@
                                     <span class="text-muted">Not a customer</span>
                                 @endif
                             @endif
+                            @if (auth()->user()->hasPermissionTo('reset_credit'))
+        @if ($user->hasRole('Customer') && !$user->hasRole('Admin') && !$user->hasRole('Employee'))
+            <form action="{{ route('reset_credit', $user->id) }}" method="POST" style="display:inline;">
+                @csrf
+                <button type="submit" class="btn btn-warning btn-sm" onclick="return confirm('Are you sure you want to reset this customer\'s credit to 0?')">Reset</button>
+            </form>
+        @endif
+    @endif
                         </td>
                     </tr>
                 @endforeach
+
             </tbody>
         </table>
 
