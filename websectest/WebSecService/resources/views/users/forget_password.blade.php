@@ -26,8 +26,7 @@
           <input type="email" class="form-control" placeholder="Enter your email" name="email" required>
         </div>
         <div class="form-group mb-2">
-          <button type="submit" class="btn btn-primary">Send Temporary Password</button>
-        </div>
+          <button type="submit" class="btn btn-primary">Send Reset Link</button>        </div>
       </form>
     </div>
   </div>

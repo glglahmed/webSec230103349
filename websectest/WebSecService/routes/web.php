@@ -21,12 +21,12 @@ Route::post('users/store-employee', [UsersController::class, 'storeEmployee'])->
 
 Route::get('users/change-password/{id}', [UsersController::class, 'changePassword'])->name('users.change-password')->middleware('auth:web');
 Route::post('users/update-password/{id}', [UsersController::class, 'updatePassword'])->name('users.update-password')->middleware('auth:web');
-Route::post('/users/{user}/add-credit', [UsersController::class, 'addCredit'])->name('users_add_credit');// routes/web.php
+Route::post('/users/{user}/add-credit', [UsersController::class, 'addCredit'])->name('users_add_credit');
 Route::get('/users', [UsersController::class, 'list'])->name('users_list');
 Route::get('/users/edit/{id}', [UsersController::class, 'edit'])->name('users_edit');
 Route::post('/users/save', [UsersController::class, 'save'])->name('users_save');
 Route::delete('/users/delete/{user}', [UsersController::class, 'delete'])->name('users_delete');
-Route::post('/users/add-credit/{user}', [UsersController::class, 'addCredit'])->name('users_add_credit'); // New Route
+Route::post('/users/add-credit/{user}', [UsersController::class, 'addCredit'])->name('users_add_credit'); 
 Route::get('/customers', [UsersController::class, 'listCustomers'])->name('customers_list');
 Route::post('/users/{user}/make-payment', [UsersController::class, 'makePayment'])->name('users_make_payment');
 Route::post('/users/reset-credit/{user}', [UsersController::class, 'resetCredit'])->name('reset_credit');
@@ -38,11 +38,17 @@ Route::delete('/products/delete/{product}', [ProductsController::class, 'delete'
 Route::post('products/purchase/{product}', [ProductsController::class, 'purchase'])->name('products_purchase')->middleware('auth:web');
 
 
-// routes/web.php
-Route::get('password/reset', [App\Http\Controllers\Web\UsersController::class, 'showForgetPasswordForm'])->name('password.request');
-Route::post('password/email', [App\Http\Controllers\Web\UsersController::class, 'sendTemporaryPassword'])->name('password.email');
-Route::get('password/change', [App\Http\Controllers\Web\UsersController::class, 'showChangePasswordForm'])->name('password.change');
-Route::post('password/update', [App\Http\Controllers\Web\UsersController::class, 'changePassword'])->name('password.update');
+// عرض صفحة Forget Password
+Route::get('password/request', [UsersController::class, 'showForgetPasswordForm'])->name('password.request');
+
+// إرسال رابط إعادة التعيين
+Route::post('password/email', [UsersController::class, 'sendResetLinkEmail'])->name('password.email');
+
+// عرض صفحة Reset Password (الرابط بيحتوي على token و email كـ query parameters)
+Route::get('password/reset', [UsersController::class, 'showResetPasswordForm'])->name('password.reset');
+
+// تقديم نموذج تغيير كلمة المرور
+Route::post('password/reset', [UsersController::class, 'resetPassword'])->name('password.update');
 Route::get('/', function () {
     return view('welcome');
 });

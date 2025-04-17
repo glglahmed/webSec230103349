@@ -15,6 +15,8 @@ use App\Models\Payment;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Hash;
+use App\Mail\PasswordResetLinkMail;
+use Illuminate\Support\Facades\DB;
 
 class UsersController extends Controller
 {
@@ -78,32 +80,17 @@ class UsersController extends Controller
         return view('users.login');
     }
 
-    // app/Http/Controllers/Web/UsersController.php
-public function doLogin(Request $request)
-{
-    $user = User::where('email', $request->email)->first();
+    public function doLogin(Request $request)
+    {
+        if (!Auth::attempt(['email' => $request->email, 'password' => $request->password])) {
+            return redirect()->back()->withInput($request->input())->withErrors('Invalid login information.');
+        }
 
-    if (!$user) {
-        return redirect()->back()->withInput($request->input())->withErrors('Invalid login information.');
+        $user = User::where('email', $request->email)->first();
+        Auth::setUser($user);
+
+        return redirect('/');
     }
-
-    // التحقق من كلمة المرور العادية أو المؤقتة
-    $isTemporaryPassword = Hash::check($request->password, $user->temporary_password);
-    $isRegularPassword = Hash::check($request->password, $user->password);
-
-    if (!$isRegularPassword && !$isTemporaryPassword) {
-        return redirect()->back()->withInput($request->input())->withErrors('Invalid login information.');
-    }
-
-    Auth::login($user);
-
-    // إذا تم تسجيل الدخول بكلمة المرور المؤقتة، نطلب تغيير كلمة المرور
-    if ($isTemporaryPassword) {
-        return redirect()->route('password.change');
-    }
-
-    return redirect('/');
-}
 
     public function doLogout(Request $request)
     {
@@ -162,7 +149,7 @@ public function doLogin(Request $request)
     {
         if (!auth()->user()->hasPermissionTo('edit_users')) abort(401);
     
-        $user = User::findOrFail($request->id); //LW user mesh mwgod ds/iv 404
+        $user = User::findOrFail($request->id);
     
         $this->validate($request, [
             'name' => ['required', 'string', 'min:3'],
@@ -239,14 +226,14 @@ public function doLogin(Request $request)
     }
 
     public function createEmployee()
-{
-    if (!auth()->user()->hasPermissionTo('create_employee')) {
-        \Log::error('Unauthorized attempt to create employee by user ID: ' . auth()->user()->id);
-        abort(403, 'Unauthorized action.');
-    }
+    {
+        if (!auth()->user()->hasPermissionTo('create_employee')) {
+            \Log::error('Unauthorized attempt to create employee by user ID: ' . auth()->user()->id);
+            abort(403, 'Unauthorized action.');
+        }
 
-    return view('users.create_employee');
-}
+        return view('users.create_employee');
+    }
 
     public function storeEmployee(Request $request)
     {
@@ -273,22 +260,23 @@ public function doLogin(Request $request)
     
         return redirect()->route('users_list')->with('success', 'Employee created successfully!');
     }
+
     public function listCustomers(Request $request)
-{
-    if (!auth()->user()->hasPermissionTo('show_users')) {
-        abort(403, 'Unauthorized action.');
+    {
+        if (!auth()->user()->hasPermissionTo('show_users')) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $customerRoleId = \DB::table('roles')->where('name', 'Customer')->value('id');
+        $customerIds = \DB::table('model_has_roles')
+            ->where('role_id', $customerRoleId)
+            ->where('model_type', 'App\\Models\\User')
+            ->pluck('model_id');
+
+        $customers = User::whereIn('id', $customerIds)->paginate(10);
+
+        return view('users.customers', compact('customers'));
     }
-
-    $customerRoleId = \DB::table('roles')->where('name', 'Customer')->value('id');
-    $customerIds = \DB::table('model_has_roles')
-        ->where('role_id', $customerRoleId)
-        ->where('model_type', 'App\\Models\\User')
-        ->pluck('model_id');
-
-    $customers = User::whereIn('id', $customerIds)->paginate(10);
-
-    return view('users.customers', compact('customers'));
-}
 
     public function updatePassword(Request $request, $id)
     {
@@ -308,89 +296,51 @@ public function doLogin(Request $request)
         return redirect()->route('users_list')->with('success', 'Password updated successfully!');
     }
 
-   
     public function addCredit(Request $request, User $user)
-{
-    if (!auth()->user()->hasPermissionTo('add_credit_to_customers')) {
-        \Log::error('Unauthorized attempt to add credit by user ID: ' . auth()->user()->id);
-        abort(403, 'Unauthorized action.');
-    }
+    {
+        if (!auth()->user()->hasPermissionTo('add_credit_to_customers')) {
+            \Log::error('Unauthorized attempt to add credit by user ID: ' . auth()->user()->id);
+            abort(403, 'Unauthorized action.');
+        }
 
-    if (!$user->hasRole('Customer')) {
-        \Log::error('Attempt to add credit to non-customer: User ID ' . $user->id . ' does not have Customer role.');
-        return redirect()->back()->withErrors('You can only add credit to customers.');
-    }
+        if (!$user->hasRole('Customer')) {
+            \Log::error('Attempt to add credit to non-customer: User ID ' . $user->id . ' does not have Customer role.');
+            return redirect()->back()->withErrors('You can only add credit to customers.');
+        }
 
-    $request->validate([
-        'credit' => ['required', 'numeric', 'min:0'],
-    ]);
+        $request->validate([
+            'credit' => ['required', 'numeric', 'min:0'],
+        ]);
 
-    $user->credit += $request->credit;
-    $user->save();
-
-    \Log::info('Credit added successfully: User ID ' . $user->id . ', Credit Added: ' . $request->credit . ', New Credit: ' . $user->credit);
-
-    return redirect()->route('customers_list')->with('success', 'Credit added successfully.');
-}
-// public function makePayment(Request $request, User $user)
-// {
-//     $permissionExists = \Spatie\Permission\Models\Permission::where('name', 'make_payments')->where('guard_name', 'web')->exists();
-//     if (!$permissionExists) {
-//         \Log::error('Permission make_payments does not exist for guard web.');
-//         abort(500, 'Permission make_payments is not configured.');
-//     }
-
-//     if (!auth()->user()->hasPermissionTo('make_payments')) {
-//         \Log::error('Unauthorized attempt to make payment by user ID: ' . auth()->user()->id);
-//         abort(403, 'Unauthorized action.');
-//     }
-
-//     if (!$user->hasRole('Customer')) {
-//         \Log::error('Attempt to make payment for non-customer: User ID ' . $user->id . ' does not have Customer role.');
-//         return redirect()->back()->withErrors('You can only make payments for customers.');
-//     }
-
-//     $request->validate([
-//         'amount' => ['required', 'numeric', 'min:0.01', 'max:' . $user->credit],
-//     ]);
-
-//     $user->credit -= $request->amount;
-//     $user->save();
-
-//     \Log::info('Payment recorded: User ID ' . $user->id . ', Amount ' . $request->amount . ', New Credit ' . $user->credit);
-
-//     Payment::create([
-//         'user_id' => $user->id,
-//         'amount' => $request->amount,
-//     ]);
-
-//     return redirect()->route('customers_list')->with('success', 'Payment recorded successfully.');
-// }
-public function resetCredit(Request $request, User $user)
-{
-    if (!auth()->user()->hasRole('Employee')) {
-        abort(403, 'Only Employees can reset credit.');
-    }
-
-    if ($user->hasRole('Customer') && !$user->hasRole('Admin') && !$user->hasRole('Employee')) {
-        $user->credit = 0;
+        $user->credit += $request->credit;
         $user->save();
-        return redirect()->route('users_list')->with('success', 'Credit reset successfully!');
+
+        \Log::info('Credit added successfully: User ID ' . $user->id . ', Credit Added: ' . $request->credit . ', New Credit: ' . $user->credit);
+
+        return redirect()->route('customers_list')->with('success', 'Credit added successfully.');
     }
 
-    return redirect()->back()->withErrors('You can only reset credit for customers.');
-}
+    public function resetCredit(Request $request, User $user)
+    {
+        if (!auth()->user()->hasRole('Employee')) {
+            abort(403, 'Only Employees can reset credit.');
+        }
 
+        if ($user->hasRole('Customer') && !$user->hasRole('Admin') && !$user->hasRole('Employee')) {
+            $user->credit = 0;
+            $user->save();
+            return redirect()->route('users_list')->with('success', 'Credit reset successfully!');
+        }
 
+        return redirect()->back()->withErrors('You can only reset credit for customers.');
+    }
 
-
-   
     public function showForgetPasswordForm()
     {
         return view('users.forget_password');
     }
 
-    public function sendTemporaryPassword(Request $request)
+    public function sendResetLinkEmail(Request $request)
     {
         $request->validate([
             'email' => 'required|email|exists:users,email',
@@ -398,34 +348,55 @@ public function resetCredit(Request $request, User $user)
 
         $user = User::where('email', $request->email)->first();
 
-        
-        $temporaryPassword = Str::random(8);
-        $user->temporary_password = bcrypt($temporaryPassword);
-        $user->save();
+        $token = Str::random(60);
 
-        Mail::raw("Your temporary password is: $temporaryPassword", function ($message) use ($user) {
-            $message->to($user->email)
-                    ->subject('Your Temporary Password');
-        });
+        DB::table('password_resets')->updateOrInsert(
+            ['email' => $user->email],
+            ['token' => $token, 'created_at' => now()]
+        );
 
-        return redirect()->back()->with('success', 'A temporary password has been sent to your email.');
+        $resetLink = route('password.reset', ['token' => $token, 'email' => $user->email]);
+
+        Mail::to($user->email)->send(new PasswordResetLinkMail($resetLink));
+        return redirect()->back()->with('success', 'A password reset link has been sent to your email.');
     }
-public function showChangePasswordForm()
-{
-    return view('users.change_password');
-}
 
-public function changePassword(Request $request)
+    public function showResetPasswordForm(Request $request)
+{
+    $token = $request->query('token');
+    $email = $request->query('email');
+
+    if (!$token || !$email) {
+        \Log::warning('Invalid reset link: Token or Email missing', ['token' => $token, 'email' => $email]);
+        return redirect()->route('password.request')->withErrors('Invalid reset link.');
+    }
+
+    \Log::info('Processing reset link: Token=' . $token . ', Email=' . $email);
+    return view('users.reset_password', compact('token', 'email'));
+}
+public function resetPassword(Request $request)
 {
     $request->validate([
+        'email' => 'required|email|exists:users,email',
+        'token' => 'required',
         'password' => ['required', 'confirmed', Password::min(8)->numbers()->letters()->mixedCase()->symbols()],
     ]);
 
-    $user = Auth::user();
+    $reset = DB::table('password_resets')
+        ->where('email', $request->email)
+        ->where('token', $request->token)
+        ->first();
+
+    if (!$reset || now()->diffInHours($reset->created_at) > 1) {
+        return redirect()->back()->withErrors('Invalid or expired token.');
+    }
+
+    $user = User::where('email', $request->email)->first();
     $user->password = bcrypt($request->password);
-    $user->temporary_password = null; 
     $user->save();
 
-    return redirect('/')->with('success', 'Password changed successfully.');
+    DB::table('password_resets')->where('email', $request->email)->delete();
+
+    return redirect()->route('login')->with('success', 'Password reset successfully! Please login with your new password.');
 }
 }
