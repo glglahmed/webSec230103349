@@ -361,42 +361,5 @@ class UsersController extends Controller
         return redirect()->back()->with('success', 'A password reset link has been sent to your email.');
     }
 
-    public function showResetPasswordForm(Request $request)
-{
-    $token = $request->query('token');
-    $email = $request->query('email');
-
-    if (!$token || !$email) {
-        \Log::warning('Invalid reset link: Token or Email missing', ['token' => $token, 'email' => $email]);
-        return redirect()->route('password.request')->withErrors('Invalid reset link.');
-    }
-
-    \Log::info('Processing reset link: Token=' . $token . ', Email=' . $email);
-    return view('users.reset_password', compact('token', 'email'));
-}
-public function resetPassword(Request $request)
-{
-    $request->validate([
-        'email' => 'required|email|exists:users,email',
-        'token' => 'required',
-        'password' => ['required', 'confirmed', Password::min(8)->numbers()->letters()->mixedCase()->symbols()],
-    ]);
-
-    $reset = DB::table('password_resets')
-        ->where('email', $request->email)
-        ->where('token', $request->token)
-        ->first();
-
-    if (!$reset || now()->diffInHours($reset->created_at) > 1) {
-        return redirect()->back()->withErrors('Invalid or expired token.');
-    }
-
-    $user = User::where('email', $request->email)->first();
-    $user->password = bcrypt($request->password);
-    $user->save();
-
-    DB::table('password_resets')->where('email', $request->email)->delete();
-
-    return redirect()->route('login')->with('success', 'Password reset successfully! Please login with your new password.');
-}
+   
 }
