@@ -12,5 +12,10 @@
     <div class="container">
         @yield('content')
     </div>
+    @if (auth()->check() && auth()->user()->hasRole('Admin'))
+    <li class="nav-item">
+        <a class="nav-link" href="{{ route('activity_logs') }}">Activity Logs</a>
+    </li>
+@endif
 </body>
 </html>

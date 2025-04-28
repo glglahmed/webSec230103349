@@ -80,18 +80,46 @@ class UsersController extends Controller
         return view('users.login');
     }
 
+    // public function doLogin(Request $request)
+    // {
+    //     if (!Auth::attempt(['email' => $request->email, 'password' => $request->password])) {
+    //         return redirect()->back()->withInput($request->input())->withErrors('Invalid login information.');
+    //     }
+
+    //     $user = User::where('email', $request->email)->first();
+    //     Auth::setUser($user);
+
+    //     return redirect('/');
+    // }
     public function doLogin(Request $request)
-    {
-        if (!Auth::attempt(['email' => $request->email, 'password' => $request->password])) {
-            return redirect()->back()->withInput($request->input())->withErrors('Invalid login information.');
+{
+    $request->validate([
+        'email' => 'required|email',
+        'password' => 'required',
+    ]);
+
+    $credentials = $request->only('email', 'password');
+
+    if (Auth::attempt($credentials)) {
+        $user = Auth::user();
+
+        if ($user->is_blocked) {
+            Auth::logout();
+            return redirect()->route('login')->withErrors('Your account has been blocked by an admin.');
         }
 
-        $user = User::where('email', $request->email)->first();
-        Auth::setUser($user);
+        // تسجيل الإجراء
+        \App\Models\ActivityLog::create([
+            'user_id' => $user->id,
+            'action' => 'Login',
+            'description' => "User {$user->name} logged in.",
+        ]);
 
-        return redirect('/');
+        return redirect()->route('profile')->with('success', 'Logged in successfully!');
     }
 
+    return redirect()->back()->withErrors('Invalid email or password.');
+}
     public function doLogout(Request $request)
     {
         Auth::logout();
@@ -405,5 +433,64 @@ public function test()
     $users = \App\Models\User::all();
 
     return view('test', compact('users'));
+}
+
+public function blockUser(Request $request, User $user)
+{
+    if (!auth()->user()->hasRole('Admin')) {
+        abort(403, 'Only Admins can block users.');
+    }
+
+    if ($user->hasRole('Admin')) {
+        return redirect()->back()->withErrors('You cannot block an Admin.');
+    }
+
+    $user->is_blocked = true;
+    $user->save();
+
+    if ($user->id !== auth()->id()) {
+        Auth::logoutOtherDevices($user->password);
+    }
+
+    // تسجيل الإجراء
+    \App\Models\ActivityLog::create([
+        'user_id' => auth()->id(),
+        'action' => 'Block User',
+        'description' => "Admin blocked user {$user->name} (ID: {$user->id}).",
+    ]);
+
+    return redirect()->route('users_list')->with('success', 'User blocked successfully!');
+}
+
+public function unblockUser(Request $request, User $user)
+{
+    if (!auth()->user()->hasRole('Admin')) {
+        abort(403, 'Only Admins can unblock users.');
+    }
+
+    $user->is_blocked = false;
+    $user->save();
+
+    // تسجيل الإجراء
+    \App\Models\ActivityLog::create([
+        'user_id' => auth()->id(),
+        'action' => 'Unblock User',
+        'description' => "Admin unblocked user {$user->name} (ID: {$user->id}).",
+    ]);
+
+    return redirect()->route('users_list')->with('success', 'User unblocked successfully!');
+}
+
+public function activityLogs()
+{
+    if (!auth()->user()->hasRole('Admin')) {
+        abort(403, 'Only Admins can view activity logs.');
+    }
+
+    $logs = \App\Models\ActivityLog::with('user')
+        ->orderBy('created_at', 'desc')
+        ->get();
+
+    return view('users.activity_logs', compact('logs'));
 }
 }

@@ -49,6 +49,11 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+Route::post('users/block/{user}', [UsersController::class, 'blockUser'])->name('users.block')->middleware('auth:web');
+Route::post('users/unblock/{user}', [UsersController::class, 'unblockUser'])->name('users.unblock')->middleware('auth:web');
+
+
+Route::get('activity-logs', [UsersController::class, 'activityLogs'])->name('activity_logs')->middleware('auth:web');
 Route::get('/multable', function (Request $request) {
     $j = $request->number ?? 5;
     $msg = $request->msg;
