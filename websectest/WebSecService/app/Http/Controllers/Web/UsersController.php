@@ -448,11 +448,8 @@ public function blockUser(Request $request, User $user)
     $user->is_blocked = true;
     $user->save();
 
-    if ($user->id !== auth()->id()) {
-        Auth::logoutOtherDevices($user->password);
-    }
+    // حذفنا السطر دا: Auth::logoutOtherDevices($user->password);
 
-    // تسجيل الإجراء
     \App\Models\ActivityLog::create([
         'user_id' => auth()->id(),
         'action' => 'Block User',
@@ -461,7 +458,6 @@ public function blockUser(Request $request, User $user)
 
     return redirect()->route('users_list')->with('success', 'User blocked successfully!');
 }
-
 public function unblockUser(Request $request, User $user)
 {
     if (!auth()->user()->hasRole('Admin')) {
