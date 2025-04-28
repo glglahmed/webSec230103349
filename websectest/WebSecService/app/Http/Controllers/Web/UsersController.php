@@ -399,4 +399,11 @@ public function resetPassword(Request $request)
 
     return redirect()->route('login')->with('success', 'Password reset successfully! Please login with your new password.');
 }
+
+public function test()
+{
+    $users = \App\Models\User::all();
+
+    return view('test', compact('users'));
+}
 }

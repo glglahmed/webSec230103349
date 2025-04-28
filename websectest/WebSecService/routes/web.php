@@ -38,16 +38,12 @@ Route::delete('/products/delete/{product}', [ProductsController::class, 'delete'
 Route::post('products/purchase/{product}', [ProductsController::class, 'purchase'])->name('products_purchase')->middleware('auth:web');
 
 
-// عرض صفحة Forget Password
 Route::get('password/request', [UsersController::class, 'showForgetPasswordForm'])->name('password.request');
 
-// إرسال رابط إعادة التعيين
 Route::post('password/email', [UsersController::class, 'sendResetLinkEmail'])->name('password.email');
 
-// عرض صفحة Reset Password (الرابط بيحتوي على token و email كـ query parameters)
 Route::get('password/reset', [UsersController::class, 'showResetPasswordForm'])->name('password.reset');
 
-// تقديم نموذج تغيير كلمة المرور
 Route::post('password/reset', [UsersController::class, 'resetPassword'])->name('password.update');
 Route::get('/', function () {
     return view('welcome');
@@ -67,6 +63,7 @@ Route::get('/prime', function () {
     return view('prime');
 });
 
-Route::get('/test', function () {
-    return view('test');
-});
+// Route::get('/test', function () {
+//     return view('test');
+// });
+Route::get('/test', [UsersController::class, 'test'])->name('test');
