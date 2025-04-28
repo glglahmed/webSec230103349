@@ -50,11 +50,10 @@ Route::get('/', function () {
 });
 
 Route::get('/multable', function (Request $request) {
-    $j = $request->number??5;
+    $j = $request->number ?? 5;
     $msg = $request->msg;
     return view('multable', compact("j", "msg"));
-});
-
+})->name('multable');
 Route::get('/even', function () {
     return view('even');
 });
