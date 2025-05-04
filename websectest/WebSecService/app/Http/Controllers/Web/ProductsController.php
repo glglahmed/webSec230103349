@@ -143,7 +143,7 @@
 //     }
 // }<?php
 namespace App\Http\Controllers\Web;
-
+use Illuminate\Support\Facades\DB; 
 use App\Http\Controllers\Controller;
 use Illuminate\Foundation\Validation\ValidatesRequests;
 use Illuminate\Http\Request;
@@ -155,56 +155,65 @@ class ProductsController extends Controller
 {
     use ValidatesRequests;
 
+    // public function list(Request $request)
+    // {
+    //     if (!auth()->user()->hasRole('Customer') && !auth()->user()->hasRole('Admin') && !auth()->user()->hasRole('Employee')) {
+    //         abort(403, 'Unauthorized action.');
+    //     }
+
+    //     $query = Product::select('*');
+
+    //     if ($request->filled('keywords')) {
+    //         $query->where('name', 'like', '%' . $request->keywords . '%')
+    //               ->orWhere('code', 'like', '%' . $request->keywords . '%');
+    //     }
+
+    //     if ($request->filled('min_price')) {
+    //         $query->where('price', '>=', $request->min_price);
+    //     }
+
+    //     if ($request->filled('max_price')) {
+    //         $query->where('price', '<=', $request->max_price);
+    //     }
+
+    //     if ($request->filled('order_by') && $request->filled('order_direction')) {
+    //         $query->orderBy($request->order_by, $request->order_direction);
+    //     }
+
+    //     $products = $query->paginate(10);
+
+    //     $credit = auth()->check() ? auth()->user()->credit : 0;
+
+    //     return view('products.list', compact('products', 'credit'));
+    // }
     public function list(Request $request)
     {
         if (!auth()->user()->hasRole('Customer') && !auth()->user()->hasRole('Admin') && !auth()->user()->hasRole('Employee')) {
             abort(403, 'Unauthorized action.');
         }
-
-        $query = Product::select('*');
-
-        if ($request->filled('keywords')) {
-            $query->where('name', 'like', '%' . $request->keywords . '%')
-                  ->orWhere('code', 'like', '%' . $request->keywords . '%');
-        }
-
-        if ($request->filled('min_price')) {
-            $query->where('price', '>=', $request->min_price);
-        }
-
-        if ($request->filled('max_price')) {
-            $query->where('price', '<=', $request->max_price);
-        }
-
-        if ($request->filled('order_by') && $request->filled('order_direction')) {
-            $query->orderBy($request->order_by, $request->order_direction);
-        }
-
-        $products = $query->paginate(10);
-
+    
         $credit = auth()->check() ? auth()->user()->credit : 0;
-
+    
+        if ($request->filled('keywords')) {
+            $keywords = $request->keywords;
+    
+            // ⚠️ intentionally unsafe: إدخال الكلمة مباشرة بدون علامات اقتباس
+            $sql = "SELECT * FROM products WHERE name = $keywords OR code = $keywords";
+            $products = DB::select($sql);
+        } else {
+            $products = Product::paginate(10);
+        }
+    
         return view('products.list', compact('products', 'credit'));
     }
 
-    public function edit(Request $request, $id = 0)
-{
-    if ($id == 0) {
-        if (!auth()->user()->hasPermissionTo('add_products')) {
-            abort(401);
-        }
-        $product = new Product();
-    } else {
-        if (!auth()->user()->hasPermissionTo('edit_products')) {
-            abort(401);
-        }
-        $product = Product::findOrFail($id);
+
+    public function edit($id)
+    {
+        $product = $id == 0 ? new Product() : Product::findOrFail($id);
+        return view('products.edit', compact('product'));
     }
 
-    $user = auth()->user(); 
-
-    return view('products.edit', compact('product', 'user')); 
-}
     public function save(Request $request)
     {
         if ($request->id == 0) {

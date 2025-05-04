@@ -448,7 +448,6 @@ public function blockUser(Request $request, User $user)
     $user->is_blocked = true;
     $user->save();
 
-    // حذفنا السطر دا: Auth::logoutOtherDevices($user->password);
 
     \App\Models\ActivityLog::create([
         'user_id' => auth()->id(),
@@ -467,7 +466,6 @@ public function unblockUser(Request $request, User $user)
     $user->is_blocked = false;
     $user->save();
 
-    // تسجيل الإجراء
     \App\Models\ActivityLog::create([
         'user_id' => auth()->id(),
         'action' => 'Unblock User',
