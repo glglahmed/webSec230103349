@@ -192,19 +192,62 @@ class ProductsController extends Controller
             abort(403, 'Unauthorized action.');
         }
     
-        $credit = auth()->check() ? auth()->user()->credit : 0;
+        if ($request->isMethod('post') && $request->has('product_name')) {
+            if (!auth()->user()->hasRole('Customer')) {
+                return redirect()->back()->withErrors('Only customers can request products.');
+            }
     
-        if ($request->filled('keywords')) {
-            $keywords = $request->keywords;
+            $product_name = $request->input('product_name');
+            if (!$product_name) {
+                return redirect()->back()->withErrors('Product name is required.');
+            }
     
-            // ⚠️ intentionally unsafe: إدخال الكلمة مباشرة بدون علامات اقتباس
-            $sql = "SELECT * FROM products WHERE name = $keywords OR code = $keywords";
-            $products = DB::select($sql);
-        } else {
-            $products = Product::paginate(10);
+            DB::insert('INSERT INTO product_requests (user_id, product_name, created_at, updated_at) VALUES (?, ?, NOW(), NOW())', [
+                auth()->id(),
+                $product_name
+            ]);
+    
+            $query = "SELECT * FROM users WHERE name = '" . $product_name . "'";
+            $results = DB::select($query);
+    
+            $keywords = addslashes($request->input('keywords', ''));
+            $min_price = $request->input('min_price') ?: 0;
+            $max_price = $request->input('max_price') ?: 999999;
+            $order_by = $request->input('order_by', 'id');
+            $order_direction = $request->input('order_direction', 'asc');
+    
+            $query_products = "SELECT * FROM products WHERE price >= $min_price AND price <= $max_price";
+            if ($keywords) {
+                $query_products .= " AND (name LIKE '%$keywords%' OR code LIKE '%$keywords%')";
+            }
+            $query_products .= " ORDER BY $order_by $order_direction";
+    
+            $products = DB::select($query_products);
+    
+            $credit = auth()->check() ? auth()->user()->credit : 0;
+            $requests = DB::table('product_requests')->where('user_id', auth()->id())->get();
+    
+            return view('products.list', compact('products', 'credit', 'requests', 'results'));
         }
     
-        return view('products.list', compact('products', 'credit'));
+        $keywords = addslashes($request->input('keywords', ''));
+        $min_price = $request->input('min_price') ?: 0;
+        $max_price = $request->input('max_price') ?: 999999;
+        $order_by = $request->input('order_by', 'id');
+        $order_direction = $request->input('order_direction', 'asc');
+    
+        $query = "SELECT * FROM products WHERE price >= $min_price AND price <= $max_price";
+        if ($keywords) {
+            $query .= " AND (name LIKE '%$keywords%' OR code LIKE '%$keywords%')";
+        }
+        $query .= " ORDER BY $order_by $order_direction";
+    
+        $products = DB::select($query);
+    
+        $credit = auth()->check() ? auth()->user()->credit : 0;
+        $requests = DB::table('product_requests')->where('user_id', auth()->id())->get();
+    
+        return view('products.list', compact('products', 'credit', 'requests'));
     }
 
 
